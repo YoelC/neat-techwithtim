@@ -234,6 +234,8 @@ def main(genomes, config):
         pipe1.move()
         pipe2.move()
         floor.move()
+        background1.move()
+        background2.move()
 
         if key_right.clicked and generations.speed >= 100:
             generations.speed += 100

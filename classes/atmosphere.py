@@ -5,9 +5,10 @@ class Background:
         self.vel = vel
         self.img = img
 
-    def draw(self, surface, stop=False):
-        if not stop:
-            self.x -= self.vel
+    def move(self):
+        self.x -= self.vel
+
+    def draw(self, surface):
 
         surface.blit(self.img, (self.x, self.y))
 
