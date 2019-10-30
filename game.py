@@ -1,23 +1,24 @@
 import pygame
 import pygame.freetype
-from random import randint
 import os
 import neat
+from classes.data import Generations, Key
+from classes.atmosphere import Background, Floor
+from classes.pipe import Pipe
+from classes.bird import Bird
 
 pygame.init()
 
 LINES = True
 max_birds = 0
 LINE_WIDTH = 2
-GAP = 200
 GAP_TWO_PIPES = 525
 WINDOW_WIDTH = 550
 WINDOW_HEIGHT = 800
 FPS = 0
+FONT = pygame.freetype.Font('slkscrb.ttf')
 
 VEL_DECORATION = 1
-GRAVITY = 0.6
-JUMP_FORCE = 8
 
 BIRD_IMGS = [pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bird1.png"))),
              pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bird2.png"))),
@@ -31,131 +32,7 @@ win = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption('Where')
 
 
-class Background:
-    def __init__(self, x):
-        self.x = x
-        self.y = 0
-
-    def draw(self, surface, stop=False):
-        if not stop:
-            self.x -= VEL_DECORATION
-
-        surface.blit(BG_IMG, (self.x, self.y))
-
-
-class Floor:
-    def __init__(self):
-        self.x = 0
-        self.y = WINDOW_HEIGHT - 55
-
-    def draw(self, surface, stop=False):
-        if not stop:
-            self.x -= VEL_DECORATION*5
-            if self.x < -90:
-                self.x = 0
-
-        surface.blit(BASE_IMG, (self.x, self.y))
-
-
-class Text:
-    def __init__(self, color, pos, font_size):
-        self.win = win
-        self.color = color
-        self.x = pos[0]
-        self.y = pos[1]
-        self.font = pygame.freetype.Font('slkscrb.ttf', font_size)
-
-    def draw(self, win, text):
-        self.font.render_to(win, (self.x, self.y), text, self.color)
-
-
-class Bird:
-    def __init__(self, y, color):
-        self.width = 65
-        self.height = 50
-        self.color = color
-        self.x = WINDOW_WIDTH - WINDOW_WIDTH/1.25 - self.width/2
-        self.y = y - self.height/2
-        self.y_vel = 0
-        self.x_vel = 0
-        self.img_count = 0
-        self.img = BIRD_IMGS[0]
-
-        self.angle = 180
-
-    def move(self):
-        self.y_vel -= GRAVITY
-        self.y -= self.y_vel
-        self.x += self.x_vel
-
-    def jump(self):
-        self.y_vel = JUMP_FORCE
-
-    def get_rect(self):
-        return pygame.Rect(self.x, self.y, self.width, self.height)
-
-    def draw(self, surface, stop=False):
-        if not stop:
-            self.img_count += 1
-
-        if self.img_count < 5:
-            self.img = BIRD_IMGS[0]
-        elif self.img_count < 10:
-            self.img = BIRD_IMGS[1]
-        elif self.img_count < 15:
-            self.img = BIRD_IMGS[2]
-        elif self.img_count < 20:
-            self.img = BIRD_IMGS[1]
-        elif self.img_count <= 21:
-            self.img = BIRD_IMGS[0]
-            self.img_count = 0
-
-        rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        #pygame.draw.rect(win, self.color, rect, 1)
-
-        if self.y_vel > -3:
-            self.angle = 15
-
-        elif self.y_vel < -3:
-            self.angle -= 3
-
-        if self.angle < -90:
-            self.angle = -90
-
-        img = pygame.transform.rotate(self.img, self.angle)
-        new_rect = img.get_rect(center=self.img.get_rect(topleft=(self.x, self.y)).center)
-        surface.blit(img, new_rect)
-
-
-class Pipe:
-    def __init__(self, x, color):
-        self.x = x
-        self.create_new()
-
-        self.color = color
-        self.width = 100
-
-    def create_new(self):
-        self.y = randint(GAP, WINDOW_HEIGHT - GAP)
-
-    def collide(self, rect):
-        if rect.colliderect(pygame.Rect(self.x, self.y, self.width, WINDOW_HEIGHT)):
-            return True
-
-        if rect.colliderect(pygame.Rect(self.x, self.y - WINDOW_HEIGHT - GAP, self.width, WINDOW_HEIGHT)):
-            return True
-
-        return False
-
-    def draw(self, surface, stop=False):
-        if not stop:
-            self.x -= VEL_DECORATION*5
-
-        surface.blit(PIPE_IMG, (self.x, self.y))
-        surface.blit(pygame.transform.flip(PIPE_IMG, False, True), (self.x, self.y - WINDOW_HEIGHT - 40))
-
-
-def render_screen(backgrounds, pipes, birds, score_text, score_text_background, floor, score, bird_draw, pipe_bottom_draw, pipe_top_draw, generation_text, generation_text_background):
+def render_screen(backgrounds, pipes, birds, floor, score, bird_draw, pipe_bottom_draw, pipe_top_draw):
     global max_birds
     birds_original = birds.copy()
 
@@ -165,14 +42,28 @@ def render_screen(backgrounds, pipes, birds, score_text, score_text_background, 
     for pipe in pipes:
         pipe.draw(win)
 
-    score_text_background.draw(win, f'{score}')
-    score_text.draw(win, f'{score}')
+    font_surface, font_pos = FONT.render(f'{score}', (0, 0, 0), size=80)
+    win.blit(font_surface, (WINDOW_WIDTH/2 - font_pos.width/2 + 5, 55 + 5))
+    font_surface, font_pos = FONT.render(f'{score}', (225, 225, 225), size=80)
+    win.blit(font_surface, (WINDOW_WIDTH/2 - font_pos.width/2, 55))
+
+    font_surface, font_pos = FONT.render(f'Generations: {generations.generations}', (0, 0, 0), size=25)
+    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15 + 2.5, 10 + 2.5))
+    font_surface, font_pos = FONT.render(f'Generations: {generations.generations}', (225, 225, 225), size=25)
+    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15, 10))
+
+    font_surface, font_pos = FONT.render(f'Alive {len(birds_original)} of {max_birds}', (0, 0, 0), size=25)
+    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15 + 2.5, 30 + 2.5))
+    font_surface, font_pos = FONT.render(f'Alive {len(birds_original)} of {max_birds}', (225, 225, 225), size=25)
+    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15, 30))
+
+    font_surface, font_pos = FONT.render(f'Speed {generations.speed}x', (0, 0, 0), size=25)
+    win.blit(font_surface, (15 + 2.5, 10 + 2.5))
+    font_surface, font_pos = FONT.render(f'Speed {generations.speed}x', (225, 225, 225), size=25)
+    win.blit(font_surface, (15, 10))
 
     if len(birds_original) > max_birds:
         max_birds = len(birds_original)
-
-    generation_text_background.draw(win, f'Population: {len(birds_original)}/{max_birds}')
-    generation_text.draw(win, f'Population: {len(birds_original)}/{max_birds}')
 
     if LINES:
         for x, bird in enumerate(birds):
@@ -194,8 +85,8 @@ def render_screen(backgrounds, pipes, birds, score_text, score_text_background, 
 
 
 def main(genomes, config):
+    tick = 0
     global LINES
-    score = 0
     run = True
 
     lines_delay = 0
@@ -208,23 +99,16 @@ def main(genomes, config):
         genome.fitness = 0
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         nets.append(net)
-        birds.append(Bird(230, 350))
+        birds.append(Bird(230, (WINDOW_WIDTH, WINDOW_HEIGHT), BIRD_IMGS))
         ge.append(genome)
 
-    floor = Floor()
-    bird = Bird(WINDOW_HEIGHT/2, (255, 0, 0))
+    floor = Floor((WINDOW_WIDTH, WINDOW_HEIGHT), VEL_DECORATION, BASE_IMG)
 
-    pipe1 = Pipe(700, (255, 0, 0))
-    pipe2 = Pipe(pipe1.x*1.5 + pipe1.width/2, (255, 0, 0))
+    pipe1 = Pipe(700, (WINDOW_WIDTH, WINDOW_HEIGHT), VEL_DECORATION, PIPE_IMG)
+    pipe2 = Pipe(pipe1.x*1.5 + pipe1.width/2, (WINDOW_WIDTH, WINDOW_HEIGHT), VEL_DECORATION, PIPE_IMG)
 
-    score_text = Text((255, 255, 255), (WINDOW_WIDTH/2 - 12, 25), 60)
-    score_text_background = Text((0, 0, 0), (WINDOW_WIDTH/2 - 12 - 2, 25 + 2), 60)
-
-    generation_text = Text((255, 255, 255), (WINDOW_WIDTH/2 - 20, 2), 20)
-    generation_text_background = Text((0, 0, 0), (WINDOW_WIDTH/2 - 20 - 2, 2+2), 20)
-
-    background1 = Background(0)
-    background2 = Background(BG_IMG.get_rect().width)
+    background1 = Background(0, VEL_DECORATION, BG_IMG)
+    background2 = Background(BG_IMG.get_rect().width, VEL_DECORATION, BG_IMG)
 
     backgrounds = [background1, background2]
 
@@ -239,9 +123,28 @@ def main(genomes, config):
             pygame.time.delay(int(1000/FPS))
         except ZeroDivisionError:
             pass
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+
+        if pygame.key.get_pressed()[pygame.K_RIGHT] and not key_right.holding:
+            key_right.holding = True
+            key_right.clicked = True
+        elif pygame.key.get_pressed()[pygame.K_RIGHT] and key_right.holding:
+            key_right.clicked = False
+        elif not pygame.key.get_pressed()[pygame.K_RIGHT]:
+            key_right.holding = False
+            key_right.clicked = False
+
+        if pygame.key.get_pressed()[pygame.K_LEFT] and not key_left.holding:
+            key_left.holding = True
+            key_left.clicked = True
+        elif pygame.key.get_pressed()[pygame.K_LEFT] and key_left.holding:
+            key_left.clicked = False
+        elif not pygame.key.get_pressed()[pygame.K_LEFT]:
+            key_left.holding = False
+            key_left.clicked = False
 
         if pygame.key.get_pressed()[pygame.K_z] and LINES and lines_delay == 0:
             LINES = False
@@ -328,7 +231,30 @@ def main(genomes, config):
         if len(birds) == 0:
             break
 
-        render_screen(backgrounds, pipes, birds, score_text, score_text_background, floor, score, bird_draw, pipe_bottom_draw, pipe_top_draw, generation_text, generation_text_background)
+        pipe1.move()
+        pipe2.move()
+        floor.move()
+
+        if key_right.clicked and generations.speed >= 100:
+            generations.speed += 100
+        elif key_right.clicked and generations.speed >= 10:
+            generations.speed += 10
+        elif key_right.clicked:
+            generations.speed += 1
+
+        if key_left.clicked and generations.speed > 100:
+            generations.speed -= 100
+        elif key_left.clicked and generations.speed > 10:
+            generations.speed -= 10
+        elif key_left.clicked and generations.speed > 1:
+            generations.speed -= 1
+
+        if tick % generations.speed == 0:
+            render_screen(backgrounds, pipes, birds, floor, score, bird_draw, pipe_bottom_draw, pipe_top_draw)
+
+        tick += 1
+
+    generations.add()
 
 
 def run(config_file):
@@ -348,9 +274,12 @@ def run(config_file):
     stats = neat.StatisticsReporter()
     p.add_reporter(stats)
 
-    winner = p.run(main, 50)
+    winner = p.run(main, 50000)
 
     print(f'\nBest genome:\n{winner}')
 
 
+key_left = Key()
+key_right = Key()
+generations = Generations()
 run(config_file='config-feedforward.txt')
