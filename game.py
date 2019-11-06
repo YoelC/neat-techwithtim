@@ -6,12 +6,13 @@ from classes.data import Generations, Key
 from classes.atmosphere import Background, Floor
 from classes.pipe import Pipe
 from classes.bird import Bird
+import sys
 
 pygame.init()
 
 LINES = True
 max_birds = 0
-LINE_WIDTH = 2
+LINE_WIDTH = 3
 GAP_TWO_PIPES = 525
 WINDOW_WIDTH = 550
 WINDOW_HEIGHT = 800
@@ -28,8 +29,8 @@ PIPE_IMG = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "pipe
 BASE_IMG = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "base.png")))
 BG_IMG = pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bg.png")))
 
-win = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-pygame.display.set_caption('Where')
+win = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.HWSURFACE)
+clock = pygame.time.Clock()
 
 
 def render_screen(backgrounds, pipes, birds, floor, score, bird_draw, pipe_bottom_draw, pipe_top_draw):
@@ -41,26 +42,6 @@ def render_screen(backgrounds, pipes, birds, floor, score, bird_draw, pipe_botto
 
     for pipe in pipes:
         pipe.draw(win)
-
-    font_surface, font_pos = FONT.render(f'{score}', (0, 0, 0), size=80)
-    win.blit(font_surface, (WINDOW_WIDTH/2 - font_pos.width/2 + 5, 55 + 5))
-    font_surface, font_pos = FONT.render(f'{score}', (225, 225, 225), size=80)
-    win.blit(font_surface, (WINDOW_WIDTH/2 - font_pos.width/2, 55))
-
-    font_surface, font_pos = FONT.render(f'Generations: {generations.generations}', (0, 0, 0), size=25)
-    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15 + 2.5, 10 + 2.5))
-    font_surface, font_pos = FONT.render(f'Generations: {generations.generations}', (225, 225, 225), size=25)
-    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15, 10))
-
-    font_surface, font_pos = FONT.render(f'Alive {len(birds_original)} of {max_birds}', (0, 0, 0), size=25)
-    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15 + 2.5, 30 + 2.5))
-    font_surface, font_pos = FONT.render(f'Alive {len(birds_original)} of {max_birds}', (225, 225, 225), size=25)
-    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15, 30))
-
-    font_surface, font_pos = FONT.render(f'Speed {generations.speed}x', (0, 0, 0), size=25)
-    win.blit(font_surface, (15 + 2.5, 10 + 2.5))
-    font_surface, font_pos = FONT.render(f'Speed {generations.speed}x', (225, 225, 225), size=25)
-    win.blit(font_surface, (15, 10))
 
     if len(birds_original) > max_birds:
         max_birds = len(birds_original)
@@ -80,6 +61,26 @@ def render_screen(backgrounds, pipes, birds, floor, score, bird_draw, pipe_botto
         bird.draw(win)
 
     floor.draw(win)
+
+    font_surface, font_pos = FONT.render(f'{score}', (0, 0, 0), size=80)
+    win.blit(font_surface, (WINDOW_WIDTH / 2 - font_pos.width / 2 + 5, 55 + 5))
+    font_surface, font_pos = FONT.render(f'{score}', (225, 225, 225), size=80)
+    win.blit(font_surface, (WINDOW_WIDTH / 2 - font_pos.width / 2, 55))
+
+    font_surface, font_pos = FONT.render(f'Generations: {generations.generations}', (0, 0, 0), size=25)
+    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15 + 2.5, 10 + 2.5))
+    font_surface, font_pos = FONT.render(f'Generations: {generations.generations}', (225, 225, 225), size=25)
+    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15, 10))
+
+    font_surface, font_pos = FONT.render(f'Alive {len(birds_original)} of {max_birds}', (0, 0, 0), size=25)
+    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15 + 2.5, 30 + 2.5))
+    font_surface, font_pos = FONT.render(f'Alive {len(birds_original)} of {max_birds}', (225, 225, 225), size=25)
+    win.blit(font_surface, (WINDOW_WIDTH - font_pos.width - 15, 30))
+
+    font_surface, font_pos = FONT.render(f'Speed {generations.speed}x', (0, 0, 0), size=25)
+    win.blit(font_surface, (15 + 2.5, WINDOW_HEIGHT - 40 + 2.5))
+    font_surface, font_pos = FONT.render(f'Speed {generations.speed}x', (225, 225, 225), size=25)
+    win.blit(font_surface, (15, WINDOW_HEIGHT - 40))
 
     pygame.display.flip()
 
@@ -119,14 +120,12 @@ def main(genomes, config):
     passed_pipe2 = False
 
     while run:
-        try:
-            pygame.time.delay(int(1000/FPS))
-        except ZeroDivisionError:
-            pass
+        pygame.display.set_caption(f'{round(clock.get_fps()/generations.speed, 2)} fps')
+        clock.tick(FPS)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
+                sys.exit(0)
 
         if pygame.key.get_pressed()[pygame.K_RIGHT] and not key_right.holding:
             key_right.holding = True
@@ -237,14 +236,24 @@ def main(genomes, config):
         background1.move()
         background2.move()
 
-        if key_right.clicked and generations.speed >= 100:
-            generations.speed += 100
-        elif key_right.clicked and generations.speed >= 10:
-            generations.speed += 10
-        elif key_right.clicked:
-            generations.speed += 1
+        if generations.speed < 100000:
 
-        if key_left.clicked and generations.speed > 100:
+            if key_right.clicked and generations.speed >= 10000:
+                generations.speed += 10000
+            elif key_right.clicked and generations.speed >= 1000:
+                generations.speed += 1000
+            elif key_right.clicked and generations.speed >= 100:
+                generations.speed += 100
+            elif key_right.clicked and generations.speed >= 10:
+                generations.speed += 10
+            elif key_right.clicked:
+                generations.speed += 1
+
+        if key_left.clicked and generations.speed > 10000:
+            generations.speed -= 10000
+        elif key_left.clicked and generations.speed > 1000:
+            generations.speed -= 1000
+        elif key_left.clicked and generations.speed > 100:
             generations.speed -= 100
         elif key_left.clicked and generations.speed > 10:
             generations.speed -= 10
@@ -271,10 +280,6 @@ def run(config_file):
                          config_file)
 
     p = neat.Population(config)
-
-    p.add_reporter(neat.StdOutReporter(True))
-    stats = neat.StatisticsReporter()
-    p.add_reporter(stats)
 
     winner = p.run(main, 50000)
 

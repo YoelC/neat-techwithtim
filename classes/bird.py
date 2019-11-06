@@ -2,6 +2,8 @@ import pygame
 
 
 class Bird:
+    # 0.6
+    # 8
     gravity = 0.6
     jump_force = 8
 
